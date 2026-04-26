@@ -23,7 +23,8 @@ var (
 )
 
 func main() {
-	db, err := openBadgerDB()
+	var err error
+	db, err = openBadgerDB()
 	if err != nil {
 		panic(fmt.Errorf("error abriendo Badger: %w", err))
 	}
