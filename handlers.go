@@ -29,8 +29,6 @@ func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
 		} else {
 			banUser(ctx, b, update.Message.Chat.ID, *update.Message.From)
 		}
-	} else {
-		log.Print("el usuario no tiene reto")
 	}
 }
 
