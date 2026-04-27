@@ -48,6 +48,14 @@ func newMember(ctx context.Context, b *bot.Bot, events ...NewUserEvent) {
 func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.User) {
 	ch := obtenerRetoBinding()
 
+	msgA, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text: fmt.Sprintf("Hola, %s", userModel2Name(user)),
+	})
+	if err != nil {
+		log.Printf("no se pudo enviar saludo al usuario, error: %v", err)
+		return
+	}
 	msg, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    chatID,
 		Text:      ch.Question + "\n\nResponde exactamente el nombre correcto **tiene 60 segundos**\\.\n\n" + fmt.Sprintf("Pista:\n```elisp\n(message \"%%s\" (lookup-key (current-global-map) (kbd \"%s\")))```", ch.Key),
@@ -61,7 +69,7 @@ func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.Use
 	ch = Challenge{
 		Question:   ch.Question,
 		Answer:     ch.Answer,
-		MessageIDs: []int{msg.ID},
+		MessageIDs: []int{msgA.ID, msg.ID},
 	}
 
 	saveChallenge(user.ID, ch)
