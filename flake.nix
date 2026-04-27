@@ -89,6 +89,8 @@
               emacs
               self.packages.${stdenv.hostPlatform.system}.default
             ];
+
+	    hardeningDisable = [ "fortify" ];
           };
         }
       );

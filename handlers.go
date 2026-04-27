@@ -12,9 +12,9 @@ import (
 )
 
 func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
-	users := getAllUsersInUpdate(update)
-	if len(users) > 0 {
-		newMember(ctx, b, update, users...)
+	events := getAllUsersInUpdate(update)
+	if len(events) > 0 {
+		newMember(ctx, b, events...)
 		return
 	}
 
@@ -26,22 +26,22 @@ func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if hasChallenge {
 		if strings.EqualFold(strings.TrimSpace(getMessage(update.Message)), strings.TrimSpace(ch.Answer)) {
-			approveUser(ctx, b, update.Message.Chat.ID, *update.Message.From)
+			approveUser(ctx, b, update.Message.Chat.ID, *update.Message.From, update.Message.ID)
 		} else {
-			banUser(ctx, b, update.Message.Chat.ID, *update.Message.From)
+			banUser(ctx, b, update.Message.Chat.ID, *update.Message.From, update.Message.ID)
 		}
 	}
 }
 
-func newMember(ctx context.Context, b *bot.Bot, update *models.Update, users ...*models.User) {
-	for _, member := range users {
+func newMember(ctx context.Context, b *bot.Bot, events ...NewUserEvent) {
+	for _, event := range events {
 		// Elimina cualquier Bot
 		// TODO: construir lista blanca de Bots permitidos
-		if member.IsBot {
-			banUser(ctx, b, update.Message.Chat.ID, *member)
+		if  event.User.IsBot {
+			banUser(ctx, b, event.Chat, *event.User, -1)
 			continue
 		}
-		newChallenge(ctx, b, update.Message.Chat.ID, *member)
+		newChallenge(ctx, b, event.Chat, *event.User)
 	}
 }
 
@@ -50,7 +50,7 @@ func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.Use
 
 	msg, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    chatID,
-		Text:      ch.Question + "\n\nResponde exactamente el nombre correcto **tiene 60 segundos**.\n\n" + fmt.Sprintf("Pista:\n```elisp\n(message \"%%s\" (lookup-key (current-global-map) (kbd \"%s\")))```", ch.Key),
+		Text:      ch.Question + "\n\nResponde exactamente el nombre correcto **tiene 60 segundos**\\.\n\n" + fmt.Sprintf("Pista:\n```elisp\n(message \"%%s\" (lookup-key (current-global-map) (kbd \"%s\")))```", ch.Key),
 		ParseMode: models.ParseModeMarkdown,
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.Use
 	saveChallenge(user.ID, ch)
 }
 
-func banUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User) {
+func banUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User, answerMsg int) {
 	_, err := b.BanChatMember(ctx, &bot.BanChatMemberParams{
 		ChatID:         chatID,
 		UserID:         user.ID,
@@ -86,6 +86,10 @@ func banUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User) {
 		return
 	}
 
+	if answerMsg > 0 {
+		ch.MessageIDs = append(ch.MessageIDs, answerMsg)
+	}
+
 	// delete the messages sent to the user
 	for _, mid := range ch.MessageIDs {
 		b.DeleteMessage(ctx, &bot.DeleteMessageParams{
@@ -100,11 +104,13 @@ func banUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User) {
 	}
 }
 
-func approveUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User) {
+func approveUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User, answerMsg int) {
 	ch, hasChallenge := getChallenge(user.ID)
 	if !hasChallenge {
 		return
 	}
+
+	ch.MessageIDs = append(ch.MessageIDs, answerMsg)
 
 	// delete the messages sent to the user
 	for _, mid := range ch.MessageIDs {
@@ -132,12 +138,30 @@ func getMessage(msg *models.Message) string {
 	return msg.Text
 }
 
-func getAllUsersInUpdate(update *models.Update) []*models.User {
-	var users []*models.User
+type NewUserEvent struct {
+	User *models.User
+	Chat int64
+}
+
+func getAllUsersInUpdate(update *models.Update) []NewUserEvent {
+	var users []NewUserEvent
 
 	if update.Message != nil {
 		for _, user := range update.Message.NewChatMembers {
-			users = append(users, &user)
+			users = append(users, NewUserEvent{
+				User: &user,
+				Chat: update.Message.Chat.ID,
+			})
+		}
+	}
+
+	if update.ChatMember != nil {
+		member := update.ChatMember
+		if member.OldChatMember.Type == "left" && member.NewChatMember.Type == "member" {
+			users = append(users, NewUserEvent{
+				User: &member.From,
+				Chat: member.Chat.ID,
+			})
 		}
 	}
 
