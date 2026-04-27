@@ -1,4 +1,4 @@
-# Ershin: un bot de Telegram para el chat GNU Emacs en Español
+# Antispam: un bot de Telegram para el chat GNU Emacs en Español
 
 Hice este bot en una tarde con algo de ayuda de Grok (sugerencias de su parte nada más). Elimina a las cuentas de spammers que suelen entrar al chat.
 
