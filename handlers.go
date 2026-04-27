@@ -143,7 +143,7 @@ func getAllUsersInUpdate(update *models.Update) []*models.User {
 
 	if update.ChatMember != nil {
 		member := update.ChatMember
-		if member.OldChatMember.Member == nil && member.NewChatMember.Member != nil {
+		if member.OldChatMember.Member == nil && member.NewChatMember.Member != nil && member.NewChatMember.Member.User != nil {
 			users = append(users, member.NewChatMember.Member.User)
 		}
 	}
