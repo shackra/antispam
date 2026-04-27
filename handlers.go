@@ -17,15 +17,16 @@ func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	if len(update.Message.NewChatMembers) > 0 {
-		newMember(ctx, b, update)
+	users := getAllUsersInUpdate(update)
+	if len(users) > 0 {
+		newMember(ctx, b, update, users...)
 		return
 	}
 
 	ch, hasChallenge := getChallenge(update.Message.From.ID)
 
 	if hasChallenge {
-		if strings.EqualFold(strings.TrimSpace(update.Message.Text), strings.TrimSpace(ch.Answer)) {
+		if strings.EqualFold(strings.TrimSpace(getMessage(update.Message)), strings.TrimSpace(ch.Answer)) {
 			approveUser(ctx, b, update.Message.Chat.ID, *update.Message.From)
 		} else {
 			banUser(ctx, b, update.Message.Chat.ID, *update.Message.From)
@@ -33,17 +34,15 @@ func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
 	}
 }
 
-func newMember(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if update.Message != nil {
-		for _, member := range update.Message.NewChatMembers {
-			// Elimina cualquier Bot
-			// TODO: construir lista blanca de Bots permitidos
-			if member.IsBot {
-				banUser(ctx, b, update.Message.Chat.ID, member)
-				continue
-			}
-			newChallenge(ctx, b, update.Message.Chat.ID, member)
+func newMember(ctx context.Context, b *bot.Bot, update *models.Update, users ...*models.User) {
+	for _, member := range users {
+		// Elimina cualquier Bot
+		// TODO: construir lista blanca de Bots permitidos
+		if member.IsBot {
+			banUser(ctx, b, update.Message.Chat.ID, *member)
+			continue
 		}
+		newChallenge(ctx, b, update.Message.Chat.ID, *member)
 	}
 }
 
@@ -124,4 +123,26 @@ func approveUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User
 
 func userModel2Name(user models.User) string {
 	return fmt.Sprintf("%s %s [@%s]", user.FirstName, user.LastName, user.Username)
+}
+
+func getMessage(msg *models.Message) string {
+	if msg == nil {
+		return ""
+	}
+
+	return msg.Text
+}
+
+func getAllUsersInUpdate(update *models.Update) []*models.User {
+	var users []*models.User
+
+	if update.Message != nil {
+		for _, user := range update.Message.NewChatMembers {
+			users = append(users, &user)
+		}
+	}
+
+	// FIXME: investiga update.ChatMember por si NewChatMembers no funciona
+
+	return users
 }

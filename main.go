@@ -35,6 +35,9 @@ func main() {
 
 	opts := []bot.Option{
 		bot.WithDefaultHandler(messages),
+		bot.WithAllowedUpdates(bot.AllowedUpdates{
+			"message", "chat_member",
+		}),
 	}
 
 	key, exists := os.LookupEnv("TELEGRAM_BOT_KEY")
