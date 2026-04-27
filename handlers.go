@@ -93,7 +93,7 @@ func banUser(ctx context.Context, b *bot.Bot, userID int64, answerMsg int) {
 		UntilDate: 0,
 	})
 	if err != nil {
-		log.Printf("Error al expulsar: %v\n", err)
+		log.Printf("Error al expulsar del chat %d: %v\n", ch.ChatID, err)
 		return
 	} else {
 		log.Printf("Usuario %d (%s) expulsado\n", ch.UserID, ch.UserName)
