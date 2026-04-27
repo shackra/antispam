@@ -3,19 +3,25 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/go-telegram/bot"
 )
 
 type Challenge struct {
-	Question   string `json:"question"`
-	Key        string `json:"key"`
-	Answer     string `json:"answer"`
-	MessageIDs []int  `json:"message_ids"`
+	Question   string    `json:"question"`
+	Key        string    `json:"key"`
+	Answer     string    `json:"answer"`
+	MessageIDs []int     `json:"message_ids"`
+	ChatID     int64     `json:"chat_id"`
+	UserID     int64     `json:"user_id"`
+	UserName   string    `json:"user_name"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 var (
@@ -49,6 +55,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	ticker := time.NewTicker(2 * time.Second)
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				err := cleanupOldChallenges(ctx, db, b)
+				if err != nil {
+					log.Printf("no se pudo limpiar los retos, error: %v", err)
+				}
+			}
+		}
+	}()
 
 	b.Start(ctx)
 }

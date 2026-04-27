@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"log"
 
@@ -25,10 +26,10 @@ func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
 	ch, hasChallenge := getChallenge(update.Message.From.ID)
 
 	if hasChallenge {
-		if strings.EqualFold(strings.TrimSpace(getMessage(update.Message)), strings.TrimSpace(ch.Answer)) {
+		if strings.EqualFold(strings.TrimSpace(getMessage(update.Message)), ch.Answer) {
 			approveUser(ctx, b, update.Message.Chat.ID, *update.Message.From, update.Message.ID)
 		} else {
-			banUser(ctx, b, update.Message.Chat.ID, *update.Message.From, update.Message.ID)
+			banUser(ctx, b, update.Message.From.ID, update.Message.ID)
 		}
 	}
 }
@@ -38,7 +39,7 @@ func newMember(ctx context.Context, b *bot.Bot, events ...NewUserEvent) {
 		// Elimina cualquier Bot
 		// TODO: construir lista blanca de Bots permitidos
 		if event.User.IsBot {
-			banUser(ctx, b, event.Chat, *event.User, -1)
+			banUser(ctx, b, event.User.ID, -1)
 			continue
 		}
 		newChallenge(ctx, b, event.Chat, *event.User)
@@ -71,28 +72,31 @@ func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.Use
 		Question:   ch.Question,
 		Answer:     ch.Answer,
 		MessageIDs: []int{msgA.ID, msg.ID},
+		UserID:     user.ID,
+		UserName:   userModel2Name(user),
+		ChatID:     chatID,
+		CreatedAt:  time.Now().UTC(),
 	}
 
 	saveChallenge(user.ID, ch)
 }
 
-func banUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User, answerMsg int) {
+func banUser(ctx context.Context, b *bot.Bot, userID int64, answerMsg int) {
+	ch, ok := getChallenge(userID)
+	if !ok {
+		log.Printf("el usuario %s no tenia un reto, igual será expulsado", ch.UserName)
+	}
+
 	_, err := b.BanChatMember(ctx, &bot.BanChatMemberParams{
-		ChatID:         chatID,
-		UserID:         user.ID,
-		RevokeMessages: true,
-		UntilDate:      0,
+		ChatID:    ch.ChatID,
+		UserID:    ch.UserID,
+		UntilDate: 0,
 	})
 	if err != nil {
 		log.Printf("Error al expulsar: %v\n", err)
 		return
 	} else {
-		log.Printf("Usuario %d (%s) expulsado\n", user.ID, userModel2Name(user))
-	}
-
-	ch, hasChallenge := getChallenge(user.ID)
-	if !hasChallenge {
-		return
+		log.Printf("Usuario %d (%s) expulsado\n", ch.UserID, ch.UserName)
 	}
 
 	if answerMsg > 0 {
@@ -102,14 +106,16 @@ func banUser(ctx context.Context, b *bot.Bot, chatID int64, user models.User, an
 	// delete the messages sent to the user
 	for _, mid := range ch.MessageIDs {
 		b.DeleteMessage(ctx, &bot.DeleteMessageParams{
-			ChatID:    chatID,
+			ChatID:    ch.ChatID,
 			MessageID: mid,
 		})
 	}
 
-	err = deleteChallenge(user.ID)
-	if err != nil {
-		log.Printf("no se pudo borrar reto, error: %v", err)
+	if ok {
+		err = deleteChallenge(userID)
+		if err != nil {
+			log.Printf("no se pudo borrar reto, error: %v", err)
+		}
 	}
 }
 
