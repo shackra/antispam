@@ -84,12 +84,12 @@ func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.Use
 func banUser(ctx context.Context, b *bot.Bot, userID int64, answerMsg int) {
 	ch, ok := getChallenge(userID)
 	if !ok {
-		log.Printf("el usuario %s no tenia un reto, igual será expulsado", ch.UserName)
+		log.Printf("el usuario %d no tenia un reto, igual será expulsado", userID)
 	}
 
 	_, err := b.BanChatMember(ctx, &bot.BanChatMemberParams{
 		ChatID:    ch.ChatID,
-		UserID:    ch.UserID,
+		UserID:    userID,
 		UntilDate: 0,
 	})
 	if err != nil {

@@ -85,7 +85,8 @@ func cleanupOldChallenges(ctx context.Context, db *badger.DB, b *bot.Bot) error 
 
 			if time.Since(ch.CreatedAt) > timeout {
 				key := bytes.TrimLeft(key, "challenge:")
-				id, err := strconv.ParseInt(fmt.Sprintf("%s", string(key[:])), 0, 64)
+				log.Printf("el ID de usuario es %s", string(key[:]))
+				id, err := strconv.ParseInt(string(key[:]), 10, 64)
 				if err != nil {
 					log.Printf("no se pudo convertir %q a entero", string(key[:]))
 					return err
