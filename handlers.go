@@ -13,6 +13,7 @@ import (
 
 func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil {
+		log.Print("evento sin Message")
 		return
 	}
 
