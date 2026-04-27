@@ -37,7 +37,7 @@ func newMember(ctx context.Context, b *bot.Bot, events ...NewUserEvent) {
 	for _, event := range events {
 		// Elimina cualquier Bot
 		// TODO: construir lista blanca de Bots permitidos
-		if  event.User.IsBot {
+		if event.User.IsBot {
 			banUser(ctx, b, event.Chat, *event.User, -1)
 			continue
 		}
@@ -50,15 +50,16 @@ func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.Use
 
 	msgA, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: chatID,
-		Text: fmt.Sprintf("Hola, %s", userModel2Name(user)),
+		Text:   fmt.Sprintf("Hola, %s", userModel2Name(user)),
 	})
 	if err != nil {
 		log.Printf("no se pudo enviar saludo al usuario, error: %v", err)
 		return
 	}
 	msg, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    chatID,
-		Text:      ch.Question + "\n\nResponde exactamente el nombre correcto **tiene 60 segundos**\\.\n\n" + fmt.Sprintf("Pista:\n```elisp\n(message \"%%s\" (lookup-key (current-global-map) (kbd \"%s\")))```", ch.Key),
+		ChatID: chatID,
+		Text: ch.Question + "\n\nResponde exactamente el nombre correcto **tiene 60 segundos**\\.\n\n" +
+			fmt.Sprintf("Pista:\n```shell\nemacs -q --batch --eval '(princ (format \"%%s\" (lookup-key (current-global-map) (kbd \"%s\"))))'```", ch.Key),
 		ParseMode: models.ParseModeMarkdown,
 	})
 	if err != nil {
