@@ -60,7 +60,7 @@ func newChallenge(ctx context.Context, b *bot.Bot, chatID int64, user models.Use
 	msg, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: chatID,
 		Text: ch.Question + "\n\nResponde exactamente el nombre correcto **tiene 60 segundos**\\.\n\n" +
-			fmt.Sprintf("Pista:\n```shell\nemacs -q --batch --eval '(princ (format \"%%s\" (lookup-key (current-global-map) (kbd \"%s\"))))'```", ch.Key),
+			fmt.Sprintf("Pista:\n```shell\nemacs -q --batch --eval '(princ (format \"%%s\\n\" (lookup-key (current-global-map) (kbd \"%s\"))))'```", ch.Key),
 		ParseMode: models.ParseModeMarkdown,
 	})
 	if err != nil {
