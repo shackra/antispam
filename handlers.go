@@ -18,7 +18,7 @@ func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	if update.Message != nil {
+	if update.Message == nil {
 		return
 	}
 
