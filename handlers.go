@@ -142,7 +142,12 @@ func getAllUsersInUpdate(update *models.Update) []*models.User {
 		}
 	}
 
-	// FIXME: investiga update.ChatMember por si NewChatMembers no funciona
+	if update.ChatMember != nil {
+		member := update.ChatMember
+		if member.OldChatMember.Member == nil && member.NewChatMember.Member != nil {
+			users = append(users, member.NewChatMember.Member.User)
+		}
+	}
 
 	return users
 }
