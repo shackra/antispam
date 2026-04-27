@@ -12,14 +12,13 @@ import (
 )
 
 func messages(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if update.Message == nil {
-		log.Print("evento sin Message")
-		return
-	}
-
 	users := getAllUsersInUpdate(update)
 	if len(users) > 0 {
 		newMember(ctx, b, update, users...)
+		return
+	}
+
+	if update.Message != nil {
 		return
 	}
 
