@@ -54,7 +54,7 @@ func deleteChallenge(userID int64) error {
 
 // CleanupChallenges elimina retos que tengan más de 60 segundos
 func cleanupOldChallenges(ctx context.Context, db *badger.DB, b *bot.Bot) error {
-	const timeout = 60 * time.Second
+	const timeout = 120 * time.Second
 
 	return db.Update(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
